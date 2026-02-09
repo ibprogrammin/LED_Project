@@ -1,6 +1,7 @@
-#include <WString.h>
 #ifndef LCDDISPLAYSAMLL_H
 #define LCDDISPLAYSAMLL_H
+
+#include <WString.h>
 
 #define I2C_SDA 21
 #define I2C_SCL 22

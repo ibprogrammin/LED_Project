@@ -1,42 +1,50 @@
 #include <Arduino.h>
 #include <ezButton.h>
 #include "DHT.h"
-#include "LCDDisplaySmall.h"
-#include "RGBLed.h"
-#include "LightState.h"
+#include "lib\LCDDisplaySmall.h"
+#include "lib\RGBLed.h"
+#include "lib\LightState.h"
+#include "lib\BLEServiceAdapter.h"
 
 #define DHTPIN 14  // Set the pin connected to the DHT11 data pin
 #define DHTTYPE DHT11 // DHT 11 
 #define LED_PIN 19 // NeoPixel LED strip
 #define NUM_LEDS 8 // Number of LEDs
 
+// Constants for the potentiometer pins
 #define RED_POT_PIN 34
 #define GREEN_POT_PIN 35
 #define BLUE_POT_PIN 39
 
+// Constants for the Button Pins
 #define RED_BUTTON_PIN 27
 #define GREEN_BUTTON_PIN 26
 #define BLUE_BUTTON_PIN 25
 #define YELLOW_BUTTON_PIN 33
 
+// Initialize buttons
 ezButton redButton(RED_BUTTON_PIN);
 ezButton greenButton(GREEN_BUTTON_PIN);
 ezButton blueButton(BLUE_BUTTON_PIN);
 ezButton yellowButton(YELLOW_BUTTON_PIN);
 
+// Initialize DHT sensor
 DHT dht(DHTPIN, DHTTYPE);
 
 const int STcp = 27;//ST_CP
 const int SHcp = 26;//SH_CP 
 const int DS = 25; //DS 
 
+// Array to hold the 7-segment display values for digits 0-9 and letters A-Z
 //0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
 int datArray[] = {0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f,
 0x77,0x7c,0x39,0x5e,0x79,0x71,0x3D,0x76,0x30,0x1e,0xf2,0x38,0x55,
 0x54,0x5c,0x73,0x67,0xf7,0xed,0x78,0x3e,0x1c,0x1D,0x64,0x6e,0x5B};
 
+// Create instances of the classes for the LED strip, LCD display, and BLE service adapter
 RGBLed* led_strip;            // Create an instance of the RGBLed class
 LCDDisplaySmall* lcd_display;  // Create an instance of the LCDDisplaySmall class 
+BLEServiceAdapter* ble_service;  // Create an instance of the BLEServiceAdapter class
 
 RGBColor color_value; // Create an instance of the RGBColor struct to hold the current color values 
 
@@ -56,11 +64,13 @@ int readPot(int pot_pin);
 void readTemperature();
 void readButtonState();
 
+// Task wrapper functions
 void mainTaskWrapper(void* parameter);
 void buttonTaskWrapper(void* parameter);
 void lcdTaskWrapper(void* parameter);
 void ledTaskWrapper(void* parameter);
 
+// Task handles for the different tasks
 TaskHandle_t MainTaskHandle = NULL;
 TaskHandle_t ButtonTaskHandle = NULL;
 TaskHandle_t LCDTaskHandle = NULL;
@@ -286,7 +296,7 @@ void readTemperature() {
 
     //lcd_display->print();
     if (last_temperature != temperature) {
-      lcd_display->printBottom(String(temperature, 1) + "C, " + String(humidity, 1) + "%");
+      lcd_display->printBottom(String(temperature, 3) + "C, " + String(humidity, 0) + "%");
       last_temperature = temperature;
       //led_strip->SetTemperature(temperature);
     }
