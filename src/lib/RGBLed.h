@@ -40,6 +40,7 @@ class RGBLed {
     void flash();
     void strobe();
     void temperatureSensitive();
+    void temperatureSensitiveV2();
     void therapy();
     
     int num_leds;

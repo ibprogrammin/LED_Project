@@ -200,20 +200,102 @@ void RGBLed::strobe() {
 
 // Function to create a temperature sensitive effect by changing the color of the LEDs based on the current temperature
 void RGBLed::temperatureSensitive() {
-    // should go from blue (cold) to red (hot)
+    // Color will go from blue (cold) to red (hot)
+    RGBColor temp_color;
+    if (temperature <= -15) {
+        temp_color = {0, 0, 255}; 
+    } else if (temperature > -15 && temperature <= -13) {
+        temp_color = {0, 51, 255};
+    } else if (temperature > -13 && temperature <= -10) {
+    temp_color = {0, 102, 255};   
+    } else if (temperature > -10 && temperature <= -7) {
+    temp_color = {0, 153, 255}; 
+    } else if (temperature > -7 && temperature <= -5) {
+        temp_color = {0, 204, 255}; 
+    } else if (temperature > -5 && temperature <= -3) {
+        temp_color = {0, 255, 255};
+    } else if (temperature > -3 && temperature <= 0) {
+        temp_color = {51, 255, 204};
+    } else if (temperature > 0 && temperature <= 3) {
+        temp_color = {102, 255, 153};
+    } else if (temperature > 3 && temperature <= 5) {
+        temp_color = {153, 255, 102};
+    } else if (temperature > 5 && temperature <= 7) {
+        temp_color = {204, 255, 51};
+    } else if (temperature > 7 && temperature <= 10) { 
+        temp_color = {255, 255, 0};
+    } else if (temperature > 10 && temperature <= 13) {
+        temp_color = {255, 229, 0};
+    } else if (temperature > 13 && temperature <= 15) {
+        temp_color = {255, 204, 0};
+    } else if (temperature > 15 && temperature <= 17) {
+        temp_color = {255, 178, 0};
+    } else if (temperature > 17 && temperature <= 20) {
+        temp_color = {255, 153, 0};
+    } else if (temperature > 20 && temperature <= 23) {
+        temp_color = {255, 127, 0};
+    } else if (temperature > 23 && temperature <= 25) {
+        temp_color = {255, 102, 0};
+    } else if (temperature > 25 && temperature <= 27) {
+        temp_color = {255, 76, 0};
+    } else if (temperature > 27 && temperature <= 30) {
+        temp_color = {255, 51, 0};
+    } else if (temperature > 30 && temperature <= 33) { 
+        temp_color = {255, 25, 0};
+    } else if (temperature > 33 && temperature <= 35) {
+        temp_color = {255, 0, 0};
+    } else if (temperature > 35 && temperature <= 37) {
+        temp_color = {230, 0, 0};
+    } else if (temperature > 37 && temperature <= 40) {
+        temp_color = {204, 0, 0};
+    } else {
+        temp_color = {179, 0, 0};
+    }
+
+    for (int j = 0; j < num_leds; j++) strip.setPixelColor(j, temp_color.red, temp_color.green, temp_color.blue); // Set the j-th LED to the temperature-sensitive color
+    strip.show(); // Update the LED strip with the new colors
+    vTaskDelay(500);
+}
+
+void RGBLed::temperatureSensitiveV2() {
+    // Define temperature bounds
+    const float MIN_TEMP = -20.0f;
+    const float MAX_TEMP = 45.0f;
+    
+    // Clamp temperature to valid range
+    float clamped_temp = constrain(temperature, MIN_TEMP, MAX_TEMP);
+    
+    // Calculate normalized value 0.0 (cold) to 1.0 (hot)
+    float ratio = (clamped_temp - MIN_TEMP) / (MAX_TEMP - MIN_TEMP);
+    
+    // Interpolate between blue (cold) and red (hot)
+    uint8_t red   = (uint8_t)(255 * ratio);          // 0 at cold, 255 at hot
+    uint8_t green = (uint8_t)(255 * (1 - abs(2*ratio - 1))); // Peak in middle for gradient
+    uint8_t blue  = (uint8_t)(255 * (1 - ratio));    // 255 at cold, 0 at hot
+    
+    for (int j = 0; j < num_leds; j++) {
+        strip.setPixelColor(j, red, green, blue);
+    }
+    strip.show();
+    vTaskDelay(500);
 }
 
 // Function to create a therapy effect by cycling through colors that are good for light therapy
 void RGBLed::therapy() {
     // should cycle through colors that are good for light therapy
-    /*int flicker = floor((1000 / frequency) / 2);
+    if (frequency <= 25) frequency++;
+    else frequency = 5;
+
+    int flicker = floor((1000 / frequency) / 2);
     for (int i = 0; i < frequency; i++) {
-        digitalWrite(LEDPIN, HIGH);
-        delay(flicker);
-        digitalWrite(LEDPIN, LOW);
-        delay(flicker);
+        for (int j = 0; j < num_leds; j++) strip.setPixelColor(j, 255, 255, 255); // Set the j-th LED to white
+        strip.show(); // Update the LED strip with the new colors
+        vTaskDelay(flicker);
+        for (int j = 0; j < num_leds; j++) strip.setPixelColor(j, 0, 0, 0); // Turn off the j-th LED
+        strip.show(); // Update the LED strip with the new colors
+        vTaskDelay(flicker);
     }
-    delay(200);*/
+    //vTaskDelay(200);
 }
 
 // Function to set the color temperature of the LEDs based on a given color temperature in kalvins

@@ -56,7 +56,6 @@ static int increment = 0;
 static int counter = 0;
 
 // put function declarations here:
-int myFunction(int, int);
 void initSevenSegment();
 void printSevenSegment();
 void retrieveColors();
@@ -79,6 +78,9 @@ TaskHandle_t RGBLedTaskHandle = NULL;
 void setup() {
   Serial.begin(115200);
   delay(1000);
+
+  ble_service = new BLEServiceAdapter();
+  ble_service->load();
 
   xTaskCreatePinnedToCore(mainTaskWrapper, "MainTask", 10000, NULL, 1, &MainTaskHandle, 1);
   xTaskCreatePinnedToCore(buttonTaskWrapper, "ButtonTask", 10000, NULL, 1, &ButtonTaskHandle, 1);
@@ -186,6 +188,8 @@ void readButtonState() {
   */
 
   if (redButton.isReleased()) {
+    vTaskDelay(100); // Add a small delay to ensure the state change is registered before updating the LCD display
+    
     color_temp_kalvins = 0;
 
     led_strip->SwitchState();
@@ -221,6 +225,8 @@ void readButtonState() {
 
     Serial.println("Red button released post exec");
   } else if (greenButton.isReleased()) {
+      vTaskDelay(100); // Add a small delay to ensure the state change is registered before updating the LCD display and switching the LED mode
+
       if(color_temp_kalvins >= 9000 || color_temp_kalvins <= 0) {
         color_temp_kalvins = 500;
       } else {
@@ -294,17 +300,12 @@ void readTemperature() {
     Serial.print(temperature);
     Serial.println(" *C");
 
-    //lcd_display->print();
+    // Update LCD display and LED strip only if the temperature has changed since the last reading
     if (last_temperature != temperature) {
-      lcd_display->printBottom(String(temperature, 3) + "C, " + String(humidity, 0) + "%");
+      lcd_display->printBottom(String(temperature, 1) + "C, " + String(humidity, 0) + "% H");
       last_temperature = temperature;
-      //led_strip->SetTemperature(temperature);
+      led_strip->SetTemperature(temperature);
     }
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
 }
 
 void initSevenSegment() {

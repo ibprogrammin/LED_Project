@@ -28,3 +28,7 @@ void BLEServiceAdapter::load() {
     BLEDevice::startAdvertising();
     Serial.println("Characteristic defined! Now you can read it in your phone!");
 }
+
+void BLEServiceAdapter::Run() {
+    // Implement any runtime behavior for the BLE service here (if needed)
+}

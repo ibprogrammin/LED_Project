@@ -6,10 +6,11 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 
-// Change these UUIDs to unique values for BLEService
-#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+// UUIDs for BLEService
+#define SERVICE_UUID        "2b629673-93b1-4324-902c-4dc4db49b435"
+#define CHARACTERISTIC_UUID "0ef370b3-d434-447a-b4da-7c5b20f6a248"
 
+// BLEServiceAdapter class definition
 class BLEServiceAdapter {
     public:
     BLEServiceAdapter();
@@ -21,6 +22,5 @@ class BLEServiceAdapter {
     BLEServer *pServer;
     BLEService *pService;
 };
-
 
 #endif
