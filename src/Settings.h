@@ -21,6 +21,7 @@ class Settings {
     };
 
     SettingsData data;
+    static_assert(sizeof(SettingsData) <= 512, "Settings struct exceeds EEPROM size");
     const int EEPROM_ADDRESS = 0;
 };
 

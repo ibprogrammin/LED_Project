@@ -28,3 +28,6 @@ void SimpleLed::Run() {
 void SimpleLed::SetFrequency(int frequency) {
     frequency = frequency;
 }
+
+void SimpleLed::chase() {
+}
