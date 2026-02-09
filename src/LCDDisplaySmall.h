@@ -13,11 +13,14 @@ class LCDDisplaySmall {
     void printTop(String text);
     void printBottom(String text);
     void SetText(String text);
+    bool GetBacklightState();
+    void SetBacklightState(bool state);
 
     private:
     String text;
     float temperature;
     float humidity;
+    bool backlight_on = false;
 };
 
 #endif

@@ -37,3 +37,16 @@ void LCDDisplaySmall::printBottom(String text) {
 void LCDDisplaySmall::SetText(String text) {
     this->text = text;
 }
+
+bool LCDDisplaySmall::GetBacklightState() {
+    return backlight_on;
+}
+
+void LCDDisplaySmall::SetBacklightState(bool state) {
+    backlight_on = state;
+    if (state) {
+        lcd.backlight();
+    } else {
+        lcd.noBacklight();
+    }
+}

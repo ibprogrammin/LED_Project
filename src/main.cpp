@@ -226,6 +226,15 @@ void readButtonState() {
     Serial.println("Blue button released");
   } else if (yellowButton.isReleased()) {
     Serial.println("Yellow button released");
+
+    // Turn Display on and off with yellow button
+    if (lcd_display->GetBacklightState()) {
+        lcd_display->SetBacklightState(false);
+        lcd_display->printTop("Display Off     ");
+    } else {
+        lcd_display->SetBacklightState(true);
+        lcd_display->printTop("Display On      ");
+    }    
   }
 }
 
