@@ -57,6 +57,48 @@ void RGBLed::Run() {
     
 }
 
+// Function to handle incoming BLE messages and update the LED state accordingly
+void RGBLed::HandleBLEMMessage(String message) {
+    // Handle incoming BLE messages and update the LED state accordingly
+    switch(message[0]) {
+        case '0':
+            Serial.println("Turning off LEDs");
+            this->SetState(LightState::LIGHTS_OFF);
+            break;
+        case '1':
+            Serial.println("Turning on LEDs");
+            this->SetState(LightState::LIGHTS_ON);
+            break;
+        case '2':
+            Serial.println("Setting LEDs to chase");
+            this->SetState(LightState::CHASE);
+            break;
+        case '3':
+            Serial.println("Setting LEDs to dim up/down");
+            this->SetState(LightState::DIM_UP_DOWN);
+            break;
+        case '4':
+            Serial.println("Setting LEDs to flash");
+            this->SetState(LightState::FLASH);
+            break;
+        case '5':
+            Serial.println("Setting LEDs to strobe");
+            this->SetState(LightState::STROBE);
+            break;
+        case '6':
+            Serial.println("Setting LEDs to temperature sensitive");
+            this->SetState(LightState::TEMPERATURE_SENSITIVE);
+            break;
+        case '7':
+            Serial.println("Setting LEDs to therapy mode");
+            this->SetState(LightState::THERAPY);
+            break;
+        default:
+            Serial.println("Invalid command received");
+            break;
+    }
+}
+
 // Function to set the color temperature of the LEDs based on a given color temperature in kalvins
 void RGBLed::SetNumLeds(int num_leds) {
     this->num_leds = num_leds;

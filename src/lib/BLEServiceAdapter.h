@@ -13,10 +13,13 @@
 // BLEServiceAdapter class definition
 class BLEServiceAdapter {
     public:
-    BLEServiceAdapter();
-    void load();
+    //BLEServiceAdapter();  // Constructor that takes a pointer to the RGBLed instance
+    void init();
     void Run();
     void SendValue(std::string value);
+    std::string GetValue() {
+        return pCharacteristic->getValue();
+    }
 
     private:
     // Add any private member variables or functions here

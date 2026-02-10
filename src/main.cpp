@@ -31,9 +31,9 @@ ezButton yellowButton(YELLOW_BUTTON_PIN);
 // Initialize DHT sensor
 DHT dht(DHTPIN, DHTTYPE);
 
-const int STcp = 27;//ST_CP
-const int SHcp = 26;//SH_CP 
-const int DS = 25; //DS 
+//const int STcp = 27;//ST_CP
+//const int SHcp = 26;//SH_CP 
+//const int DS = 25; //DS 
 
 // Array to hold the 7-segment display values for digits 0-9 and letters A-Z
 //0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
@@ -44,16 +44,9 @@ int datArray[] = {0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f,
 // Create instances of the classes for the LED strip, LCD display, and BLE service adapter
 RGBLed* led_strip;            // Create an instance of the RGBLed class
 LCDDisplaySmall* lcd_display;  // Create an instance of the LCDDisplaySmall class 
-BLEServiceAdapter* ble_service;  // Create an instance of the BLEServiceAdapter class
+BLEServiceAdapter* ble_service_adapter;  // Create an instance of the BLEServiceAdapter class
 
 RGBColor color_value; // Create an instance of the RGBColor struct to hold the current color values 
-
-float last_temperature = 0.0;
-int color_temp_kalvins = 0;
-static int led_frequency = 5;
-//static double dim_value = 0.0; // MAX 255
-static int increment = 0;
-static int counter = 0;
 
 // put function declarations here:
 void initSevenSegment();
@@ -68,20 +61,28 @@ void mainTaskWrapper(void* parameter);
 void buttonTaskWrapper(void* parameter);
 void lcdTaskWrapper(void* parameter);
 void ledTaskWrapper(void* parameter);
+void bleServiceTaskWrapper(void* parameter);
 
 // Task handles for the different tasks
 TaskHandle_t MainTaskHandle = NULL;
 TaskHandle_t ButtonTaskHandle = NULL;
 TaskHandle_t LCDTaskHandle = NULL;
 TaskHandle_t RGBLedTaskHandle = NULL;
+TaskHandle_t BLEServiceTaskHandle = NULL;
+
+float last_temperature = 0.0;
+int color_temp_kalvins = 0;
+//static int led_frequency = 5;
+//static int counter = 0;
+
+bool led_strip_initialized = false;
+std::string current_ble_value = "";
 
 void setup() {
   Serial.begin(115200);
   delay(1000);
 
-  ble_service = new BLEServiceAdapter();
-  ble_service->load();
-
+  xTaskCreatePinnedToCore(bleServiceTaskWrapper, "BLEServiceTask", 10000, NULL, 1, &BLEServiceTaskHandle, 1);
   xTaskCreatePinnedToCore(mainTaskWrapper, "MainTask", 10000, NULL, 1, &MainTaskHandle, 1);
   xTaskCreatePinnedToCore(buttonTaskWrapper, "ButtonTask", 10000, NULL, 1, &ButtonTaskHandle, 1);
   xTaskCreatePinnedToCore(lcdTaskWrapper, "LCDDisplayTask", 10000, NULL, 1, &LCDTaskHandle, 1);
@@ -90,19 +91,6 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  /*double dim_value = (increment ^ 2);
-  increment++;
-  if (increment == 255) {
-    dim_value = 0;
-    increment = 0;
-  }*/
-
-  /*Serial.print(increment);
-  Serial.print("/");
-  Serial.print(dim_value);
-  Serial.println(" ");*/
-  //analogWrite(15, (int)floor(dim_value));
-  //delay(33);
 }
 
 void mainTaskWrapper(void* parameter) {
@@ -111,16 +99,15 @@ void mainTaskWrapper(void* parameter) {
 
   while (true) {
 
-    if (counter == 25) {
+    /*if (counter == 25) {
       //Serial.printf("Main Task Stack Free: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
-
       counter = 0;
     } else {
       counter++;
-    }
+    }*/
     
     readTemperature();
-    vTaskDelay(3000);
+    vTaskDelay(5000);
   }
 }
 
@@ -149,7 +136,10 @@ void lcdTaskWrapper(void* parameter) {
 }
 
 void ledTaskWrapper(void* parameter) {
+  // Initialize LED strip
   led_strip = new RGBLed(NUM_LEDS, LED_PIN);
+  vTaskDelay(500); // Wait for LED strip to initialize
+  // Set initial state of LED Strip
   led_strip->SetState(LightState::LIGHTS_OFF);    // Set the desired light state (e.g., CHASE, DIM_UP_DOWN, etc.)
   
   while (true) {
@@ -162,6 +152,34 @@ void ledTaskWrapper(void* parameter) {
 
     //Serial.printf("LED task Stack Free: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
   }
+}
+
+void bleServiceTaskWrapper(void* parameter) {
+    Serial.println("Initializing BLE Service Adapter with RGBLed instance");
+    ble_service_adapter = new BLEServiceAdapter();
+    Serial.println("Loading BLE Service Adapter");
+    vTaskDelay(500);
+    ble_service_adapter->init();
+    Serial.println("BLE Service Adapter loaded successfully");
+    vTaskDelay(500);
+
+    while (true) {
+        /*if (led_strip != nullptr && !led_strip_initialized) {
+            led_strip_initialized = true;
+        }*/
+
+        // Check if a new value has been received via BLE and update the LED strip state accordingly
+        if (ble_service_adapter != nullptr) {
+            std::string new_value = ble_service_adapter->GetValue();
+            if (new_value != current_ble_value) {
+                Serial.println("New BLE value received: " + String(new_value.c_str()));
+                current_ble_value = new_value;
+                led_strip->HandleBLEMMessage(String(current_ble_value.c_str()));
+            }
+        }
+
+        vTaskDelay(3000);  
+    }
 }
 
 void readButtonState() {
@@ -308,10 +326,13 @@ void readTemperature() {
 
       std::string temp_str = ("Temperature: " + String(temperature, 1) + "C, Humidity: " + String(humidity, 0) + "%").c_str();
 
-      ble_service->SendValue(temp_str);
+      if (ble_service_adapter != nullptr) {
+        ble_service_adapter->SendValue(temp_str);
+      }
     }
 }
 
+/*
 void initSevenSegment() {
   //set pins to output
   pinMode(STcp,OUTPUT);
@@ -326,3 +347,4 @@ void printSevenSegment() {
   digitalWrite(STcp,HIGH); //pull the ST_CPST_CP to save the data
   //delay(1000);
 }
+*/

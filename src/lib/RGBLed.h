@@ -15,6 +15,7 @@ class RGBLed {
     RGBLed(int num_leds, int led_pin);
     void load();
     void Run();
+    void HandleBLEMMessage(String message);
     void SetNumLeds(int num_leds);
     void SetLedPin(int led_pin);
     void SetFrequency(int frequency);
