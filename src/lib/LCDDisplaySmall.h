@@ -21,7 +21,7 @@ class LCDDisplaySmall {
     String text;
     float temperature;
     float humidity;
-    bool backlight_on = false;
+    bool backlight_on = true;
 };
 
 #endif

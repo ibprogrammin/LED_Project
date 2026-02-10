@@ -16,11 +16,13 @@ class BLEServiceAdapter {
     BLEServiceAdapter();
     void load();
     void Run();
+    void SendValue(std::string value);
 
     private:
     // Add any private member variables or functions here
     BLEServer *pServer;
     BLEService *pService;
+    BLECharacteristic *pCharacteristic;
 };
 
 #endif

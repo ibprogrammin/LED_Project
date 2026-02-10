@@ -46,7 +46,7 @@ void RGBLed::Run() {
             strobe();
             break;
         case LightState::TEMPERATURE_SENSITIVE:
-            temperatureSensitive();
+            temperatureSensitiveV2();
             break;
         case LightState::THERAPY:
             therapy();

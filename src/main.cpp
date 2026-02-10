@@ -189,7 +189,7 @@ void readButtonState() {
 
   if (redButton.isReleased()) {
     vTaskDelay(100); // Add a small delay to ensure the state change is registered before updating the LCD display
-    
+
     color_temp_kalvins = 0;
 
     led_strip->SwitchState();
@@ -305,6 +305,10 @@ void readTemperature() {
       lcd_display->printBottom(String(temperature, 1) + "C, " + String(humidity, 0) + "% H");
       last_temperature = temperature;
       led_strip->SetTemperature(temperature);
+
+      std::string temp_str = ("Temperature: " + String(temperature, 1) + "C, Humidity: " + String(humidity, 0) + "%").c_str();
+
+      ble_service->SendValue(temp_str);
     }
 }
 
