@@ -97,3 +97,60 @@ void BLEServiceAdapter::SendValue(std::string value) {
         Serial.println("No device connected, cannot send value");
     }
 }
+
+BLECommand BLEServiceAdapter::parseCommand(const std::string& command) {
+    BLECommand result;
+
+    size_t pos = 0;
+    while (pos < command.length()) {
+        char identifier = command[pos];
+        
+        switch (identifier) {
+            case 'M':
+                // Extract mode value (single digit)
+                if (pos + 1 < command.length() && std::isdigit(command[pos + 1])) {
+                    int modeValue = command[pos + 1] - '0';
+                    result.state = static_cast<LightState>(modeValue);
+                    pos += 2;
+                } else {
+                    Serial.println("Invalid light state format");
+                }
+                break;
+                
+            case 'R':
+                // Extract R value (3 digits)
+                if (pos + 3 < command.length()) {
+                    result.r = std::stoi(command.substr(pos + 1, 3));
+                    pos += 4;
+                } else {
+                    Serial.println("Invalid RGB format");
+                }
+                break;
+                
+            case 'G':
+                // Extract G value (3 digits)
+                if (pos + 3 < command.length()) {
+                    result.g = std::stoi(command.substr(pos + 1, 3));
+                    pos += 4;
+                } else {
+                    Serial.println("Invalid RGB format");
+                }
+                break;
+                
+            case 'B':
+                // Extract B value (3 digits)
+                if (pos + 3 < command.length()) {
+                    result.b = std::stoi(command.substr(pos + 1, 3));
+                    pos += 4;
+                } else {
+                    Serial.println("Invalid RGB format");
+                }
+                break;
+                
+            default:
+                Serial.println("Unknown identifier: " + identifier);
+        }
+    }
+    
+    return result;
+}
