@@ -3,6 +3,8 @@
 
 #include "LightState.h"
 #include "Adafruit_NeoPixel.h"
+#include <string>
+#include <vector>
 
 struct RGBColor {
     int red;
@@ -10,12 +12,25 @@ struct RGBColor {
     int blue;
 };
 
+static const std::vector<std::string> LED_MODE_STRINGS = {
+    "System Ready",
+    "Off Mode",
+    "On Mode",
+    "Chase Mode",
+    "Dim Up/Down Mode",
+    "Flash Mode",
+    "Strobe Mode",
+    "Temperature Mode",
+    "Therapy Mode",
+    "Invalid Mode"
+};
+
 class RGBLed {
     public:
     RGBLed(int num_leds, int led_pin);
     void load();
     void Run();
-    void HandleBLEMMessage(String message);
+    void HandleBLEMessage(String message);
     void SetNumLeds(int num_leds);
     void SetLedPin(int led_pin);
     void SetFrequency(int frequency);

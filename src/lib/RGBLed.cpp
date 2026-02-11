@@ -1,7 +1,5 @@
 #include <Arduino.h>
 #include "RGBLed.h"
-#include "LightState.h"
-#include "Adafruit_NeoPixel.h"
 
 // Constructor for the RGBLed class, initializes the number of LEDs and the pin they are connected to
 RGBLed::RGBLed(int num_leds, int led_pin) {
@@ -21,7 +19,7 @@ void RGBLed::load() {
     strip.show();                   // Turn off all the LEDs initially
 }
 
-// Run function to update the LED strip based on the current state
+// Run function to update the LED strip based on the current state and run the appropriate light effect
 void RGBLed::Run() {
     //if (frequency <= 25) frequency++;
     //else frequency = 5;
@@ -46,7 +44,9 @@ void RGBLed::Run() {
             strobe();
             break;
         case LightState::TEMPERATURE_SENSITIVE:
-            temperatureSensitiveV2();
+            temperatureSensitive();
+            //TODO this seems to only display as white, will need to do more testing
+            //temperatureSensitiveV2();
             break;
         case LightState::THERAPY:
             therapy();
@@ -58,45 +58,51 @@ void RGBLed::Run() {
 }
 
 // Function to handle incoming BLE messages and update the LED state accordingly
-void RGBLed::HandleBLEMMessage(String message) {
+void RGBLed::HandleBLEMessage(String message) {
     // Handle incoming BLE messages and update the LED state accordingly
-    switch(message[0]) {
-        case '0':
-            Serial.println("Turning off LEDs");
-            this->SetState(LightState::LIGHTS_OFF);
-            break;
-        case '1':
-            Serial.println("Turning on LEDs");
-            this->SetState(LightState::LIGHTS_ON);
-            break;
-        case '2':
-            Serial.println("Setting LEDs to chase");
-            this->SetState(LightState::CHASE);
-            break;
-        case '3':
-            Serial.println("Setting LEDs to dim up/down");
-            this->SetState(LightState::DIM_UP_DOWN);
-            break;
-        case '4':
-            Serial.println("Setting LEDs to flash");
-            this->SetState(LightState::FLASH);
-            break;
-        case '5':
-            Serial.println("Setting LEDs to strobe");
-            this->SetState(LightState::STROBE);
-            break;
-        case '6':
-            Serial.println("Setting LEDs to temperature sensitive");
-            this->SetState(LightState::TEMPERATURE_SENSITIVE);
-            break;
-        case '7':
-            Serial.println("Setting LEDs to therapy mode");
-            this->SetState(LightState::THERAPY);
-            break;
-        default:
-            Serial.println("Invalid command received");
-            break;
+    if (message.length() == 1) {
+        switch(message[0]) {
+            case '0':
+                Serial.println("Turning off LEDs");
+                this->SetState(LightState::LIGHTS_OFF);
+                break;
+            case '1':
+                Serial.println("Turning on LEDs");
+                this->SetState(LightState::LIGHTS_ON);
+                break;
+            case '2':
+                Serial.println("Setting LEDs to chase");
+                this->SetState(LightState::CHASE);
+                break;
+            case '3':
+                Serial.println("Setting LEDs to dim up/down");
+                this->SetState(LightState::DIM_UP_DOWN);
+                break;
+            case '4':
+                Serial.println("Setting LEDs to flash");
+                this->SetState(LightState::FLASH);
+                break;
+            case '5':
+                Serial.println("Setting LEDs to strobe");
+                this->SetState(LightState::STROBE);
+                break;
+            case '6':
+                Serial.println("Setting LEDs to temperature sensitive");
+                this->SetState(LightState::TEMPERATURE_SENSITIVE);
+                break;
+            case '7':
+                Serial.println("Setting LEDs to therapy mode");
+                this->SetState(LightState::THERAPY);
+                break;
+            default:
+                Serial.println("Invalid command received");
+                this->SetState(LightState::LIGHTS_OFF);
+                break;
+        }
+    } else {
+        Serial.println("Invalid message length received");
     }
+    
 }
 
 // Function to set the color temperature of the LEDs based on a given color temperature in kalvins

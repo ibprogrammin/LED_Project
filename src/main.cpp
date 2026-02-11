@@ -58,6 +58,7 @@ void readButtonState();
 
 // Task wrapper functions
 void mainTaskWrapper(void* parameter);
+void colorTaskWrapper(void* parameter);
 void buttonTaskWrapper(void* parameter);
 void lcdTaskWrapper(void* parameter);
 void ledTaskWrapper(void* parameter);
@@ -65,6 +66,7 @@ void bleServiceTaskWrapper(void* parameter);
 
 // Task handles for the different tasks
 TaskHandle_t MainTaskHandle = NULL;
+TaskHandle_t ColorTaskHandle = NULL;
 TaskHandle_t ButtonTaskHandle = NULL;
 TaskHandle_t LCDTaskHandle = NULL;
 TaskHandle_t RGBLedTaskHandle = NULL;
@@ -72,9 +74,6 @@ TaskHandle_t BLEServiceTaskHandle = NULL;
 
 float last_temperature = 0.0;
 int color_temp_kalvins = 0;
-//static int led_frequency = 5;
-//static int counter = 0;
-
 bool led_strip_initialized = false;
 std::string current_ble_value = "";
 
@@ -84,6 +83,7 @@ void setup() {
 
   xTaskCreatePinnedToCore(bleServiceTaskWrapper, "BLEServiceTask", 10000, NULL, 1, &BLEServiceTaskHandle, 1);
   xTaskCreatePinnedToCore(mainTaskWrapper, "MainTask", 10000, NULL, 1, &MainTaskHandle, 1);
+  xTaskCreatePinnedToCore(colorTaskWrapper, "ColorTask", 10000, NULL, 2, &ColorTaskHandle, 1);
   xTaskCreatePinnedToCore(buttonTaskWrapper, "ButtonTask", 10000, NULL, 1, &ButtonTaskHandle, 1);
   xTaskCreatePinnedToCore(lcdTaskWrapper, "LCDDisplayTask", 10000, NULL, 1, &LCDTaskHandle, 1);
   xTaskCreatePinnedToCore(ledTaskWrapper, "LEDTask", 10000, NULL, 1, &RGBLedTaskHandle, 0);
@@ -97,17 +97,29 @@ void mainTaskWrapper(void* parameter) {
   Serial.println("DHT11 test!");
   dht.begin();
 
-  while (true) {
+  vTaskDelay(2000); // Delay to allow other tasks to initialize properly
 
-    /*if (counter == 25) {
-      //Serial.printf("Main Task Stack Free: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
-      counter = 0;
-    } else {
-      counter++;
-    }*/
-    
-    readTemperature();
+  while (true) {
+    readTemperature();   
     vTaskDelay(5000);
+  }
+}
+
+void colorTaskWrapper(void* parameter) {
+  color_value = {0, 0, 0}; // Initialize color values to 0 (off)
+  vTaskDelay(5000); // Delay to allow other tasks to initialize properly
+
+  while (true) {
+    // Check if the color temperature mode is active, if not retrieve the current color values from the potentiometers and update the LED strip accordingly  
+    if (color_temp_kalvins == 0) {
+      retrieveColors();
+      if (led_strip != nullptr) {
+        led_strip->SetColorVal(color_value);
+      } else {
+        Serial.println("LED strip instance is not initialized yet!");
+      }
+    }
+    vTaskDelay(1000);
   }
 }
 
@@ -117,6 +129,8 @@ void buttonTaskWrapper(void* parameter) {
   greenButton.setDebounceTime(20);
   blueButton.setDebounceTime(20);
   yellowButton.setDebounceTime(20);
+
+  vTaskDelay(5000); // Delay to allow other tasks to initialize properly
 
   while (true) {
     readButtonState();
@@ -129,56 +143,60 @@ void lcdTaskWrapper(void* parameter) {
   lcd_display->load();
   lcd_display->printTop("Off Mode        ");
 
+  vTaskDelay(2000); // Delay to allow other tasks to initialize properly
+
   while (true) {
     //lcd_display->print();
-    vTaskDelay(1000);
+    lcd_display->cycleMessages(0);
+    vTaskDelay(10000);
   }
 }
 
 void ledTaskWrapper(void* parameter) {
-  // Initialize LED strip
-  led_strip = new RGBLed(NUM_LEDS, LED_PIN);
-  vTaskDelay(500); // Wait for LED strip to initialize
-  // Set initial state of LED Strip
-  led_strip->SetState(LightState::LIGHTS_OFF);    // Set the desired light state (e.g., CHASE, DIM_UP_DOWN, etc.)
+  led_strip = new RGBLed(NUM_LEDS, LED_PIN);      // Initialize LED strip
+  vTaskDelay(1000);                                // Wait for LED strip to initialize
+  led_strip->SetState(LightState::LIGHTS_OFF);    // Set the desired initial light state (e.g., CHASE, DIM_UP_DOWN, etc.)
   
   while (true) {
-    // Check if the color temperature mode is active, if not retrieve the current color values from the potentiometers and update the LED strip accordingly  
-    if (color_temp_kalvins == 0) {
-      retrieveColors();
-      led_strip->SetColorVal(color_value);
-    }
     led_strip->Run();
-
     //Serial.printf("LED task Stack Free: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
   }
 }
 
 void bleServiceTaskWrapper(void* parameter) {
-    Serial.println("Initializing BLE Service Adapter with RGBLed instance");
-    ble_service_adapter = new BLEServiceAdapter();
     Serial.println("Loading BLE Service Adapter");
+    ble_service_adapter = new BLEServiceAdapter();
     vTaskDelay(500);
+    Serial.println("Initializing BLE Service Adapter");
     ble_service_adapter->init();
     Serial.println("BLE Service Adapter loaded successfully");
-    vTaskDelay(500);
+
+    vTaskDelay(2000);     // Delay to allow other tasks to initialize properly
 
     while (true) {
-        /*if (led_strip != nullptr && !led_strip_initialized) {
-            led_strip_initialized = true;
-        }*/
-
         // Check if a new value has been received via BLE and update the LED strip state accordingly
         if (ble_service_adapter != nullptr) {
             std::string new_value = ble_service_adapter->GetValue();
             if (new_value != current_ble_value) {
                 Serial.println("New BLE value received: " + String(new_value.c_str()));
                 current_ble_value = new_value;
-                led_strip->HandleBLEMMessage(String(current_ble_value.c_str()));
+
+                // Check if the led_strip and lcd_display instance is initialized before calling HandleBLEMessage to avoid potential null pointer dereference
+                if (led_strip != nullptr) {
+                    led_strip->HandleBLEMessage(String(current_ble_value.c_str()));
+                } else {
+                    Serial.println("LED strip instance is not initialized yet!");
+                }
+                if (lcd_display != nullptr) {
+                    lcd_display->addMessage(LED_MODE_STRINGS[(int)led_strip->GetState() + 1], 1);
+                    //lcd_display->cycleMessages();
+                } else {
+                    Serial.println("LCD display instance is not initialized yet!");
+                }
             }
         }
 
-        vTaskDelay(3000);  
+        vTaskDelay(2000);  
     }
 }
 
@@ -188,13 +206,14 @@ void readButtonState() {
   blueButton.loop();
   yellowButton.loop();
 
+  /*
   // get button state after debounce
   int button1_state = redButton.getState();  // the state after debounce
   int button2_state = greenButton.getState();  // the state after debounce
   int button3_state = blueButton.getState();  // the state after debounce
   int button4_state = yellowButton.getState();  // the state after debounce
 
-  /*
+  
   Serial.print("Red button state: ");
   Serial.println(button1_state);
   Serial.print("Green button state: ");
@@ -211,7 +230,7 @@ void readButtonState() {
     color_temp_kalvins = 0;
 
     led_strip->SwitchState();
-    switch (led_strip->GetState()) {
+    /*switch (led_strip->GetState()) {
       case LightState::LIGHTS_OFF:
         lcd_display->printTop("Off Mode        ");
         break;
@@ -238,8 +257,11 @@ void readButtonState() {
         break;
       default:
         break;
-    }
+    }*/
     //lcd_display->print();
+    
+    lcd_display->addMessage(LED_MODE_STRINGS[(int)led_strip->GetState() + 1], 1);
+    //lcd_display->cycleMessages();
 
     Serial.println("Red button released post exec");
   } else if (greenButton.isReleased()) {
@@ -253,36 +275,61 @@ void readButtonState() {
 
       led_strip->SetState(LightState::LIGHTS_ON);
       led_strip->SetColorTemperature(color_temp_kalvins);
-      lcd_display->printTop(String(color_temp_kalvins) + "K           ");
+      //lcd_display->printTop(String(color_temp_kalvins) + "K           ");
+
+      lcd_display->addMessage(std::to_string(color_temp_kalvins) + "K", 4);
+      //lcd_display->cycleMessages();
 
       Serial.print("Color Temperature: " + String(color_temp_kalvins) + "K");
   } else if (blueButton.isReleased()) {
-    Serial.println("Blue button released");
+      Serial.println("Blue button released");
   } else if (yellowButton.isReleased()) {
-    Serial.println("Yellow button released");
+      Serial.println("Yellow button released");
 
-    // Turn Display on and off with yellow button
-    if (lcd_display->GetBacklightState()) {
-        lcd_display->SetBacklightState(false);
-        lcd_display->printTop("Display Off     ");
-    } else {
-        lcd_display->SetBacklightState(true);
-        lcd_display->printTop("Display On      ");
-    }    
+      // Turn Display on and off with yellow button
+      if (lcd_display->GetBacklightState()) {
+          lcd_display->SetBacklightState(false);
+          //lcd_display->printTop("Display Off     ");
+          lcd_display->addMessage("Display Off", 5);
+      } else {
+          lcd_display->SetBacklightState(true);
+          //lcd_display->printTop("Display On      ");
+          lcd_display->addMessage("Display On", 5);
+      }    
+      
+      //lcd_display->cycleMessages();
   }
 }
 
 void retrieveColors() {
-    //Serial.print("Red - Pot: ");
+    // Read potentiometer values for RGB color components
     int red_val = readPot(RED_POT_PIN); 
-    //Serial.print("Green - Pot: ");
     int green_val = readPot(GREEN_POT_PIN);
-    //Serial.print("Blue - Pot: ");
     int blue_val = readPot(BLUE_POT_PIN);
 
-    color_value.red = red_val;
-    color_value.green = green_val;
-    color_value.blue = blue_val;
+    // Update color values only if they have changed
+    if (red_val != color_value.red || green_val != color_value.green || blue_val != color_value.blue) {
+      color_value.red = red_val;
+      color_value.green = green_val;
+      color_value.blue = blue_val;
+      
+      // Update LCD display with new color values
+      if (lcd_display != nullptr) {
+        lcd_display->addMessage("R:" + std::to_string(red_val) + " G:" + std::to_string(green_val) + " B:" + std::to_string(blue_val), 3);
+        //lcd_display->cycleMessages();
+      } else {
+        Serial.println("LCD display instance is not initialized yet!");
+      }
+      //lcd_display->cycleMessages();
+      
+      // Debug output to Serial Monitor
+      Serial.print("New Color Values - R: ");
+      Serial.print(red_val);
+      Serial.print(" G: ");
+      Serial.print(green_val);
+      Serial.print(" B: ");
+      Serial.println(blue_val);
+    }
 }
 
 int readPot(int pot_pin) {
@@ -301,6 +348,7 @@ int readPot(int pot_pin) {
   return color_val;
 }
 
+//TODO there might be an issue with switching to temperature mode on the LED strip before the temperature has been set in the class
 void readTemperature() {
     float humidity = dht.readHumidity();          // Read humidity (percent)
     float temperature = dht.readTemperature();    // Read temperature as Celsius (the default)
@@ -320,14 +368,17 @@ void readTemperature() {
 
     // Update LCD display and LED strip only if the temperature has changed since the last reading
     if (last_temperature != temperature) {
-      lcd_display->printBottom(String(temperature, 1) + "C, " + String(humidity, 0) + "% H");
+      //lcd_display->printBottom(String(temperature, 1) + "C, " + String(humidity, 0) + "% H");
       last_temperature = temperature;
       led_strip->SetTemperature(temperature);
 
-      std::string temp_str = ("Temperature: " + String(temperature, 1) + "C, Humidity: " + String(humidity, 0) + "%").c_str();
+      std::string temp_str = (String(temperature, 1) + "C, " + String(humidity, 0) + "% H").c_str();
+
+      lcd_display->addMessage(temp_str, 2);
+      //lcd_display->cycleMessages();
 
       if (ble_service_adapter != nullptr) {
-        ble_service_adapter->SendValue(temp_str);
+        //ble_service_adapter->SendValue(temp_str);
       }
     }
 }
