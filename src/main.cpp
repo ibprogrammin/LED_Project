@@ -80,6 +80,7 @@ std::string current_ble_value = "";
 void setup() {
   Serial.begin(115200);
   delay(1000);
+  analogReadResolution(8); // Set ADC resolution to 8 bits (0-255)
 
   xTaskCreatePinnedToCore(bleServiceTaskWrapper, "BLEServiceTask", 10000, NULL, 1, &BLEServiceTaskHandle, 1);
   xTaskCreatePinnedToCore(mainTaskWrapper, "MainTask", 10000, NULL, 1, &MainTaskHandle, 1);
@@ -280,7 +281,7 @@ void readButtonState() {
       lcd_display->addMessage(std::to_string(color_temp_kalvins) + "K", 4);
       //lcd_display->cycleMessages();
 
-      Serial.print("Color Temperature: " + String(color_temp_kalvins) + "K");
+      Serial.println("Color Temperature: " + String(color_temp_kalvins) + "K");
   } else if (blueButton.isReleased()) {
       Serial.println("Blue button released");
   } else if (yellowButton.isReleased()) {
@@ -335,7 +336,8 @@ void retrieveColors() {
 int readPot(int pot_pin) {
   int pot_value = analogRead(pot_pin);                    // read the value from the potentiometer (0-4095 for 12-bit ADC)
   uint32_t voltage_mV = analogReadMilliVolts(pot_pin);    // convert the raw value to millivolts (0-3300 mV for 3.3V reference)
-  int color_val = (int)floor(pot_value / 16);             // scale the raw value to a range of 0-255 (for 8-bit color values)
+  //int color_val = (int)floor(pot_value / 16);             // scale the raw value to a range of 0-255 (for 8-bit color values)
+  int color_val = map(pot_value, 0, 255, 0, 255);       // scale the raw value to a range of 0-255 (for 8-bit color values)
 
   /*
   Serial.print(pot_value);
