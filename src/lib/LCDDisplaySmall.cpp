@@ -1,29 +1,33 @@
 #include "LCDDisplaySmall.h"
 #include <LiquidCrystal_I2C.h>
 
+// Create an instance of the LiquidCrystal_I2C class to control the LCD display
 LiquidCrystal_I2C lcd(0x27, 16, 2); // set the LCD address to 0x27 for a 16 chars and 2 line display
 
+// Constructor for the LCDDisplaySmall class, initializes the text and message queue
 LCDDisplaySmall::LCDDisplaySmall() {
     current_index = 0;
     first_row = "";
     second_row = "";
-    text = "Welcome!";
-    //message_list.clear();
-    addMessage(text, 0);
+    text = WELCOME_MESSAGE;
+    message_list[0] = WELCOME_MESSAGE;
 }
 
-void LCDDisplaySmall::load() {
+// Load function to initialize the LCD display
+void LCDDisplaySmall::init() {
     // Initialize LCD display
     lcd.init(I2C_SDA, I2C_SCL); // initialize the lcd to use user defined I2C pins
 	lcd.backlight();            // turn on the backlight
 }
 
+// Print function to display the current text on the LCD
 void LCDDisplaySmall::print() {
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.print(text.c_str());
 }
 
+// Function to print text on the top row of the LCD
 void LCDDisplaySmall::printTop(String text) {
     lcd.setCursor(0,0);             // Move the cursor to the beginning of the first line
     lcd.print("                "); // Clear the line
@@ -31,6 +35,7 @@ void LCDDisplaySmall::printTop(String text) {
     lcd.print(text.c_str());                // Print the new text
 }
 
+// Function to print text on the bottom row of the LCD
 void LCDDisplaySmall::printBottom(String text) {
     lcd.setCursor(0,1);         // Move the cursor to the beginning of the second line  
     lcd.print("                "); // Clear the line
@@ -38,15 +43,18 @@ void LCDDisplaySmall::printBottom(String text) {
     lcd.print(text);                // Print the new text
 }
 
-void LCDDisplaySmall::SetText(String text) {
+// Function to set the text variable (not directly used for printing, but can be useful for storing the current text state)
+void LCDDisplaySmall::setText(String text) {
     this->text = text.c_str();
 }
 
-bool LCDDisplaySmall::GetBacklightState() {
+// Function to get the current state of the backlight
+bool LCDDisplaySmall::getBacklightState() {
     return backlight_on;
 }
 
-void LCDDisplaySmall::SetBacklightState(bool state) {
+// Function to set the state of the backlight
+void LCDDisplaySmall::setBacklightState(bool state) {
     backlight_on = state;
     if (state) {
         lcd.backlight();
@@ -130,6 +138,26 @@ void LCDDisplaySmall::cycleMessages(int cycles) {
         vTaskDelay(MESSAGE_DISPLAY_TIME_SECONDS * 1000);
     }
 
+}
+
+void LCDDisplaySmall::scrollText(int row, std::string message, int delay_time) {
+    for (int i=0; i < LCD_COLS; i++) {
+        message = " " + message;  
+    } 
+    message = message + " "; 
+
+    for (int pos = 0; pos < message.length(); pos++) {
+        std::string output = message.substr(pos, pos + LCD_COLS);
+        lcd.setCursor(0, row);
+        lcd.print(output.c_str());
+        vTaskDelay(delay_time);
+    }
+}
+
+void displayCustomChar(uint8_t custom_char[8], uint8_t location) {
+    lcd.createChar(location, custom_char);
+    lcd.home();
+    lcd.write(0);
 }
 
 // Get the number of messages in queue

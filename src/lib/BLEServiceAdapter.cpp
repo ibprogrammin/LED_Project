@@ -1,31 +1,32 @@
 #include "BLEServiceAdapter.h"
 #include "LightState.h"
 
-#define SERVER_NAME "LED Controller"
+#define SERVER_NAME "LED Controller"                // Name of the BLE server that will appear when scanning for devices
 
-bool deviceConnected = false; // Global variable to track connection status
+bool device_connected = false;                      // Global variable to track connection status
 
 //Setup callbacks onConnect and onDisconnect
 class DeviceServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
-    deviceConnected = true;
+    device_connected = true;
   };
   void onDisconnect(BLEServer* pServer) {
-    deviceConnected = false;
+    device_connected = false;
   }
 };
 
+// Callback class to handle characteristic write events
 class DeviceCallbacks : public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pCharacteristic) {
-        String rxValue = String(pCharacteristic->getValue().c_str());
+        String rx_value = String(pCharacteristic->getValue().c_str());
         
         pCharacteristic->setValue(pCharacteristic->getValue().c_str()); // Echo the received value back to the characteristic
 
-        if (rxValue.length() > 0) {
+        if (rx_value.length() > 0) {
         Serial.println("*********");
         Serial.print("Received Value: ");
-        for (int i = 0; i < rxValue.length(); i++) {
-            Serial.print(rxValue[i]);
+        for (int i = 0; i < rx_value.length(); i++) {
+            Serial.print(rx_value[i]);
         }
 
         Serial.println();
@@ -34,6 +35,12 @@ class DeviceCallbacks : public BLECharacteristicCallbacks {
     }
 };
 
+// Constructor for the BLEServiceAdapter class, takes a pointer to the RGBLed instance to allow for direct control of the LED strip from BLE commands
+BLEServiceAdapter::BLEServiceAdapter() { 
+    // Initialize any member variables here if needed   
+}
+
+// initialize BLE service and characteristics
 void BLEServiceAdapter::init() {
     // Initialize BLE device, server, service, and characteristics here
 
@@ -82,14 +89,15 @@ void BLEServiceAdapter::init() {
     Serial.println("Characteristic defined! Now you can read it in your phone!");
 }
 
-void BLEServiceAdapter::Run() {
+// Implement any additional functions for BLEServiceAdapter here (e.g., sending values, parsing commands, etc.)
+void BLEServiceAdapter::run() {
     // Implement any runtime behavior for the BLE service here (if needed)
 }
 
 // Function to send a value to connected BLE clients
-void BLEServiceAdapter::SendValue(std::string value) {
+void BLEServiceAdapter::sendValue(std::string value) {
     Serial.println("Sending value to BLE clients: " + String(value.c_str()));
-    if (deviceConnected) {
+    if (device_connected) {
         Serial.println("Device is connected, sending value...");
         pCharacteristic->setValue(value);
         pCharacteristic->notify(); // Notify connected clients of the new value
@@ -98,20 +106,21 @@ void BLEServiceAdapter::SendValue(std::string value) {
     }
 }
 
+// Function to parse a command string into a BLECommand struct
 BLECommand BLEServiceAdapter::parseCommand(const std::string& command) {
     BLECommand result;
 
-    size_t pos = 0;
-    while (pos < command.length()) {
-        char identifier = command[pos];
+    size_t position = 0;
+    while (position < command.length()) {
+        char identifier = command[position];
         
         switch (identifier) {
             case 'M':
                 // Extract mode value (single digit)
-                if (pos + 1 < command.length() && std::isdigit(command[pos + 1])) {
-                    int modeValue = command[pos + 1] - '0';
-                    result.state = static_cast<LightState>(modeValue);
-                    pos += 2;
+                if (position + 1 < command.length() && std::isdigit(command[position + 1])) {
+                    int modeValue = command[position + 1] - '0';
+                    result.state = static_cast<LightEffect>(modeValue);
+                    position += 2;
                 } else {
                     Serial.println("Invalid light state format");
                 }
@@ -119,9 +128,9 @@ BLECommand BLEServiceAdapter::parseCommand(const std::string& command) {
                 
             case 'R':
                 // Extract R value (3 digits)
-                if (pos + 3 < command.length()) {
-                    result.r = std::stoi(command.substr(pos + 1, 3));
-                    pos += 4;
+                if (position + 3 < command.length()) {
+                    result.r = std::stoi(command.substr(position + 1, 3));
+                    position += 4;
                 } else {
                     Serial.println("Invalid RGB format");
                 }
@@ -129,9 +138,9 @@ BLECommand BLEServiceAdapter::parseCommand(const std::string& command) {
                 
             case 'G':
                 // Extract G value (3 digits)
-                if (pos + 3 < command.length()) {
-                    result.g = std::stoi(command.substr(pos + 1, 3));
-                    pos += 4;
+                if (position + 3 < command.length()) {
+                    result.g = std::stoi(command.substr(position + 1, 3));
+                    position += 4;
                 } else {
                     Serial.println("Invalid RGB format");
                 }
@@ -139,9 +148,9 @@ BLECommand BLEServiceAdapter::parseCommand(const std::string& command) {
                 
             case 'B':
                 // Extract B value (3 digits)
-                if (pos + 3 < command.length()) {
-                    result.b = std::stoi(command.substr(pos + 1, 3));
-                    pos += 4;
+                if (position + 3 < command.length()) {
+                    result.b = std::stoi(command.substr(position + 1, 3));
+                    position += 4;
                 } else {
                     Serial.println("Invalid RGB format");
                 }

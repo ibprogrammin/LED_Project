@@ -1,0 +1,16 @@
+-The device should be able to be switched in and out of BLE mode
+    -When a BLE message is received it should automatically switch 
+    -To switch back, changing the effect or turing the LEDs on and off again should switch it back to controls
+
+-We need a menu to change modes
+    -The buttons should direct you through the menu
+        -button to scroll down
+        -another button to change the setting
+        -Switch Display Off/On
+        -to restart? ESP.restart();
+    -Settings:
+        -LEDs On/Off
+        -Colour source: Controls/BLE(if available)/Color Temperature/DMX Mode (will need a DMX starting address)
+        -Light Effect: (Scroll through all the available effects)
+        -Set Colour Temp: 1000K-9000K
+    

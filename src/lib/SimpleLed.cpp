@@ -10,7 +10,7 @@ void SimpleLed::load() {
     pinMode(LEDPIN, OUTPUT);
 }
 
-void SimpleLed::Run() {
+void SimpleLed::run() {
     
   if (frequency <= 25) frequency++;
   else frequency = 5;
@@ -25,7 +25,7 @@ void SimpleLed::Run() {
   delay(200);
 }
 
-void SimpleLed::SetFrequency(int frequency) {
+void SimpleLed::setFrequency(int frequency) {
     frequency = frequency;
 }
 

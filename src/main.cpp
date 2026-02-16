@@ -1,9 +1,9 @@
 #include <Arduino.h>
 #include <ezButton.h>
 #include "DHT.h"
-#include "lib\LCDDisplaySmall.h"
-#include "lib\RGBLed.h"
 #include "lib\LightState.h"
+#include "lib\RGBLed.h"
+#include "lib\LCDDisplaySmall.h"
 #include "lib\BLEServiceAdapter.h"
 
 #define DHTPIN 14  // Set the pin connected to the DHT11 data pin
@@ -48,9 +48,7 @@ BLEServiceAdapter* ble_service_adapter;  // Create an instance of the BLEService
 
 RGBColor color_value; // Create an instance of the RGBColor struct to hold the current color values 
 
-// put function declarations here:
-void initSevenSegment();
-void printSevenSegment();
+// Put function declarations here:
 void retrieveColors();
 int readPot(int pot_pin);
 void readTemperature();
@@ -115,7 +113,7 @@ void colorTaskWrapper(void* parameter) {
     if (color_temp_kalvins == 0) {
       retrieveColors();
       if (led_strip != nullptr) {
-        led_strip->SetColorVal(color_value);
+        led_strip->setColorVal(color_value);
       } else {
         Serial.println("LED strip instance is not initialized yet!");
       }
@@ -141,7 +139,7 @@ void buttonTaskWrapper(void* parameter) {
 
 void lcdTaskWrapper(void* parameter) {
   lcd_display = new LCDDisplaySmall();
-  lcd_display->load();
+  lcd_display->init();
   lcd_display->printTop("Off Mode        ");
 
   vTaskDelay(2000); // Delay to allow other tasks to initialize properly
@@ -156,10 +154,10 @@ void lcdTaskWrapper(void* parameter) {
 void ledTaskWrapper(void* parameter) {
   led_strip = new RGBLed(NUM_LEDS, LED_PIN);      // Initialize LED strip
   vTaskDelay(1000);                                // Wait for LED strip to initialize
-  led_strip->SetState(LightState::LIGHTS_OFF);    // Set the desired initial light state (e.g., CHASE, DIM_UP_DOWN, etc.)
+  led_strip->setState(LightEffect::LIGHTS_OFF);    // Set the desired initial light state (e.g., CHASE, DIM_UP_DOWN, etc.)
   
   while (true) {
-    led_strip->Run();
+    led_strip->run();
     //Serial.printf("LED task Stack Free: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
   }
 }
@@ -177,19 +175,19 @@ void bleServiceTaskWrapper(void* parameter) {
     while (true) {
         // Check if a new value has been received via BLE and update the LED strip state accordingly
         if (ble_service_adapter != nullptr) {
-            std::string new_value = ble_service_adapter->GetValue();
+            std::string new_value = ble_service_adapter->getValue();
             if (new_value != current_ble_value) {
                 Serial.println("New BLE value received: " + String(new_value.c_str()));
                 current_ble_value = new_value;
 
                 // Check if the led_strip and lcd_display instance is initialized before calling HandleBLEMessage to avoid potential null pointer dereference
                 if (led_strip != nullptr) {
-                    led_strip->HandleBLEMessage(String(current_ble_value.c_str()));
+                    led_strip->handleBLEMessage(String(current_ble_value.c_str()));
                 } else {
                     Serial.println("LED strip instance is not initialized yet!");
                 }
                 if (lcd_display != nullptr) {
-                    lcd_display->addMessage(LED_MODE_STRINGS[(int)led_strip->GetState() + 1], 1);
+                    lcd_display->addMessage(LED_MODE_STRINGS[(int)led_strip->getState() + 1], 1);
                     //lcd_display->cycleMessages();
                 } else {
                     Serial.println("LCD display instance is not initialized yet!");
@@ -230,7 +228,7 @@ void readButtonState() {
 
     color_temp_kalvins = 0;
 
-    led_strip->SwitchState();
+    led_strip->switchState();
     /*switch (led_strip->GetState()) {
       case LightState::LIGHTS_OFF:
         lcd_display->printTop("Off Mode        ");
@@ -261,7 +259,7 @@ void readButtonState() {
     }*/
     //lcd_display->print();
     
-    lcd_display->addMessage(LED_MODE_STRINGS[(int)led_strip->GetState() + 1], 1);
+    lcd_display->addMessage(LED_MODE_STRINGS[(int)led_strip->getState() + 1], 1);
     //lcd_display->cycleMessages();
 
     Serial.println("Red button released post exec");
@@ -274,8 +272,8 @@ void readButtonState() {
         color_temp_kalvins += 500;
       }
 
-      led_strip->SetState(LightState::LIGHTS_ON);
-      led_strip->SetColorTemperature(color_temp_kalvins);
+      led_strip->setState(LightEffect::LIGHTS_ON);
+      led_strip->setColorTemperature(color_temp_kalvins);
       //lcd_display->printTop(String(color_temp_kalvins) + "K           ");
 
       lcd_display->addMessage(std::to_string(color_temp_kalvins) + "K", 4);
@@ -283,22 +281,23 @@ void readButtonState() {
 
       Serial.println("Color Temperature: " + String(color_temp_kalvins) + "K");
   } else if (blueButton.isReleased()) {
-      Serial.println("Blue button released");
-  } else if (yellowButton.isReleased()) {
-      Serial.println("Yellow button released");
+      Serial.println("Switching Display");
 
       // Turn Display on and off with yellow button
-      if (lcd_display->GetBacklightState()) {
-          lcd_display->SetBacklightState(false);
+      if (lcd_display->getBacklightState()) {
+          lcd_display->setBacklightState(false);
           //lcd_display->printTop("Display Off     ");
           lcd_display->addMessage("Display Off", 5);
       } else {
-          lcd_display->SetBacklightState(true);
+          lcd_display->setBacklightState(true);
           //lcd_display->printTop("Display On      ");
           lcd_display->addMessage("Display On", 5);
       }    
       
       //lcd_display->cycleMessages();
+  } else if (yellowButton.isReleased()) {
+      Serial.println("Restarting ESP");
+      ESP.restart();
   }
 }
 
@@ -366,15 +365,15 @@ void readTemperature() {
     Serial.print(" %\t");
     Serial.print("Temperature: "); 
     Serial.print(temperature);
-    Serial.println(" *C");
+    Serial.println(" °C");
 
     // Update LCD display and LED strip only if the temperature has changed since the last reading
     if (last_temperature != temperature) {
       //lcd_display->printBottom(String(temperature, 1) + "C, " + String(humidity, 0) + "% H");
       last_temperature = temperature;
-      led_strip->SetTemperature(temperature);
+      led_strip->setTemperature(temperature);
 
-      std::string temp_str = (String(temperature, 1) + "C, " + String(humidity, 0) + "% H").c_str();
+      std::string temp_str = (String(temperature, 1) + "°C, " + String(humidity, 0) + "% H").c_str();
 
       lcd_display->addMessage(temp_str, 2);
       //lcd_display->cycleMessages();
@@ -386,6 +385,9 @@ void readTemperature() {
 }
 
 /*
+//void initSevenSegment();
+//void printSevenSegment();
+
 void initSevenSegment() {
   //set pins to output
   pinMode(STcp,OUTPUT);

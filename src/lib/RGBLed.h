@@ -5,12 +5,7 @@
 #include "Adafruit_NeoPixel.h"
 #include <string>
 #include <vector>
-
-struct RGBColor {
-    int red;
-    int green;
-    int blue;
-};
+#include "RGBColor.h"
 
 static const std::vector<std::string> LED_MODE_STRINGS = {
     "System Ready",
@@ -28,25 +23,26 @@ static const std::vector<std::string> LED_MODE_STRINGS = {
 class RGBLed {
     public:
     RGBLed(int num_leds, int led_pin);
-    void load();
-    void Run();
-    void HandleBLEMessage(String message);
-    void SetNumLeds(int num_leds);
-    void SetLedPin(int led_pin);
-    void SetFrequency(int frequency);
-    void SwitchState();
-    void SetState(LightState light_state);
-    LightState GetState();
-    void SetColorVal(RGBColor color_val);
-    void SetColorVal(int red_val, int green_val, int blue_val);
-    void SetTemperature(float temperature);
-    void SetColorTemperature(int color_temp_kalvins);
+    void init();
+    void run();
+    // TODO this should move to a BLEMessageHandler class
+    void handleBLEMessage(String message);
+    void setNumLeds(int num_leds);
+    void setLedPin(int led_pin);
+    void setFrequency(int frequency);
+    void switchState();
+    void setState(LightEffect light_state);
+    LightEffect getState();
+    void setColorVal(RGBColor color_val);
+    void setColorVal(int red_val, int green_val, int blue_val);
+    void setTemperature(float temperature);
+    void setColorTemperature(int color_temp_kalvins);
 
     private:
     const int DEFAULT_FREQUENCY = 5;
 
     int frequency;
-    LightState state;
+    LightEffect state;
     Adafruit_NeoPixel strip;
 
     void off();
@@ -58,6 +54,8 @@ class RGBLed {
     void temperatureSensitive();
     void temperatureSensitiveV2();
     void therapy();
+    void rainbowChase();
+    void rainbowDimUpDown();
     
     int num_leds;
     int led_pin;

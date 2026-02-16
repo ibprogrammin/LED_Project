@@ -6,11 +6,11 @@ RGBLed::RGBLed(int num_leds, int led_pin) {
     this->num_leds = num_leds;
     this->led_pin = led_pin;
 
-    load();
+    init();
 }
 
 // Load function to initialize the NeoPixel library and set up the LED strip
-void RGBLed::load() {
+void RGBLed::init() {
     frequency = DEFAULT_FREQUENCY;
 
     strip = Adafruit_NeoPixel(num_leds, led_pin, NEO_GRB + NEO_KHZ800);
@@ -20,35 +20,35 @@ void RGBLed::load() {
 }
 
 // Run function to update the LED strip based on the current state and run the appropriate light effect
-void RGBLed::Run() {
+void RGBLed::run() {
     //if (frequency <= 25) frequency++;
     //else frequency = 5;
 
     switch(state) {
-        case LightState::LIGHTS_OFF:
+        case LightEffect::LIGHTS_OFF:
             off();
             break;
-        case LightState::LIGHTS_ON:
+        case LightEffect::LIGHTS_ON:
             on();
             break;
-        case LightState::CHASE:
+        case LightEffect::CHASE:
             chase();
             break;
-        case LightState::DIM_UP_DOWN:
+        case LightEffect::DIM_UP_DOWN:
             dimUpDown();
             break;
-        case LightState::FLASH:
+        case LightEffect::FLASH:
             flash();
             break;
-        case LightState::STROBE:
+        case LightEffect::STROBE:
             strobe();
             break;
-        case LightState::TEMPERATURE_SENSITIVE:
+        case LightEffect::TEMPERATURE_SENSITIVE:
             temperatureSensitive();
             //TODO this seems to only display as white, will need to do more testing
             //temperatureSensitiveV2();
             break;
-        case LightState::THERAPY:
+        case LightEffect::THERAPY:
             therapy();
             break;
         default:
@@ -58,45 +58,45 @@ void RGBLed::Run() {
 }
 
 // Function to handle incoming BLE messages and update the LED state accordingly
-void RGBLed::HandleBLEMessage(String message) {
+void RGBLed::handleBLEMessage(String message) {
     // Handle incoming BLE messages and update the LED state accordingly
     if (message.length() == 1) {
         switch(message[0]) {
             case '0':
                 Serial.println("Turning off LEDs");
-                this->SetState(LightState::LIGHTS_OFF);
+                this->setState(LightEffect::LIGHTS_OFF);
                 break;
             case '1':
                 Serial.println("Turning on LEDs");
-                this->SetState(LightState::LIGHTS_ON);
+                this->setState(LightEffect::LIGHTS_ON);
                 break;
             case '2':
                 Serial.println("Setting LEDs to chase");
-                this->SetState(LightState::CHASE);
+                this->setState(LightEffect::CHASE);
                 break;
             case '3':
                 Serial.println("Setting LEDs to dim up/down");
-                this->SetState(LightState::DIM_UP_DOWN);
+                this->setState(LightEffect::DIM_UP_DOWN);
                 break;
             case '4':
                 Serial.println("Setting LEDs to flash");
-                this->SetState(LightState::FLASH);
+                this->setState(LightEffect::FLASH);
                 break;
             case '5':
                 Serial.println("Setting LEDs to strobe");
-                this->SetState(LightState::STROBE);
+                this->setState(LightEffect::STROBE);
                 break;
             case '6':
                 Serial.println("Setting LEDs to temperature sensitive");
-                this->SetState(LightState::TEMPERATURE_SENSITIVE);
+                this->setState(LightEffect::TEMPERATURE_SENSITIVE);
                 break;
             case '7':
                 Serial.println("Setting LEDs to therapy mode");
-                this->SetState(LightState::THERAPY);
+                this->setState(LightEffect::THERAPY);
                 break;
             default:
                 Serial.println("Invalid command received");
-                this->SetState(LightState::LIGHTS_OFF);
+                this->setState(LightEffect::LIGHTS_OFF);
                 break;
         }
     } else {
@@ -106,57 +106,57 @@ void RGBLed::HandleBLEMessage(String message) {
 }
 
 // Function to set the color temperature of the LEDs based on a given color temperature in kalvins
-void RGBLed::SetNumLeds(int num_leds) {
+void RGBLed::setNumLeds(int num_leds) {
     this->num_leds = num_leds;
 }
 
 // Function to set the pin number that the LED strip is connected to
-void RGBLed::SetLedPin(int led_pin) {
+void RGBLed::setLedPin(int led_pin) {
     this->led_pin = led_pin;
 }
 
 // Function to switch to the next light state in a cyclic manner
-void RGBLed::SwitchState() {
+void RGBLed::switchState() {
     int current_state = (int)this->state;
-    if (current_state < (int)LightState::MAX_STATE - 1) {
+    if (current_state < (int)LightEffect::MAX_STATE - 1) {
         current_state++;
     } else {
         current_state = 0;
     }
 
-    this->state = (LightState)current_state;
+    this->state = (LightEffect)current_state;
 }
 
 // Function to set the current light state
-void RGBLed::SetState(LightState light_state) {
+void RGBLed::setState(LightEffect light_state) {
     Serial.println("Setting Light State: " + String((int)light_state));
     this->state = light_state;
 }
 
 // Function to get the current light state
-LightState RGBLed::GetState() {
+LightEffect RGBLed::getState() {
     return this->state;
 }
 
 // Function to set the frequency of the light effects (if applicable)
-void RGBLed::SetFrequency(int frequency) {
+void RGBLed::setFrequency(int frequency) {
     this->frequency = frequency;
 }
 
 // Function to set the color value of the LEDs using an RGBColor struct
-void RGBLed::SetColorVal(RGBColor color_val) {
+void RGBLed::setColorVal(RGBColor color_val) {
     this->color_val = color_val;
 }
 
 // Function to set the color value of the LEDs using individual red, green, and blue values
-void RGBLed::SetColorVal(int red_val, int green_val, int blue_val) {
+void RGBLed::setColorVal(int red_val, int green_val, int blue_val) {
     this->color_val.red = red_val;
     this->color_val.green = green_val;
     this->color_val.blue = blue_val;
 }
 
 // Function to set the color temperature of the LEDs based on a given color temperature in kalvins
-void RGBLed::SetTemperature(float temperature) {
+void RGBLed::setTemperature(float temperature) {
     this->temperature = temperature;
 }
 
@@ -244,6 +244,16 @@ void RGBLed::strobe() {
     }
     strip.show(); // Update the LED strip with the new colors
     vTaskDelay(300); // Wait for 100 milliseconds
+}
+
+// function to create a rainbow effect by cycling through different colors on the LED strip
+void RGBLed::rainbowChase() {
+
+}
+
+// Function to create a rainbow dim up and down effect by cycling through different colors and gradually increasing and decreasing the brightness of the LEDs
+void RGBLed::rainbowDimUpDown() {
+
 }
 
 // Function to create a temperature sensitive effect by changing the color of the LEDs based on the current temperature
@@ -347,35 +357,35 @@ void RGBLed::therapy() {
 }
 
 // Function to set the color temperature of the LEDs based on a given color temperature in kalvins
-void RGBLed::SetColorTemperature(int color_temp_kalvins) {
+void RGBLed::setColorTemperature(int color_temp_kalvins) {
     switch (color_temp_kalvins) {
         case 0 ... 1000:
-            SetColorVal(255, 56, 0); // Candlelight/Fire
+            setColorVal(255, 56, 0); // Candlelight/Fire
             break;
         case 1001 ... 1900:
-            SetColorVal(255, 147, 41); // Candlelight Tungsten
+            setColorVal(255, 147, 41); // Candlelight Tungsten
             break;
         case 1901 ... 2700:
-            SetColorVal(255, 169, 87); // Soft white/Incandescent
+            setColorVal(255, 169, 87); // Soft white/Incandescent
             break;
         case 2701 ... 3000:
-            SetColorVal(255, 180, 107); // Warm white
+            setColorVal(255, 180, 107); // Warm white
             break;
         case 3001 ... 4000:
-            SetColorVal(255, 209, 163); // Neutral white
+            setColorVal(255, 209, 163); // Neutral white
             break;
         case 4001 ... 5000:
-            SetColorVal(255, 228, 206); // Daylight/Flourescent
+            setColorVal(255, 228, 206); // Daylight/Flourescent
             break;
         case 5001 ... 6500:
-            SetColorVal(255, 249, 253); // Clear Daylight
+            setColorVal(255, 249, 253); // Clear Daylight
             break;
         case 6501 ... 9000:
-            SetColorVal(214, 255, 255); // Clear blue sky
+            setColorVal(214, 255, 255); // Clear blue sky
             break;
         default:
-            SetColorVal(255, 255, 255); // Default to pure white if color temperature is not recognized
+            setColorVal(255, 255, 255); // Default to pure white if color temperature is not recognized
             break;
     }
-    SetState(LightState::LIGHTS_ON);
+    setState(LightEffect::LIGHTS_ON);
 }

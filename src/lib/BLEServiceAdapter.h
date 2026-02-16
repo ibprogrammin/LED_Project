@@ -11,7 +11,7 @@
 #define CHARACTERISTIC_UUID "0ef370b3-d434-447a-b4da-7c5b20f6a248"
 
 struct BLECommand {
-    LightState state;
+    LightEffect state;
     int r;
     int g;
     int b;
@@ -22,9 +22,9 @@ class BLEServiceAdapter {
     public:
     //BLEServiceAdapter();  // Constructor that takes a pointer to the RGBLed instance
     void init();
-    void Run();
-    void SendValue(std::string value);
-    std::string GetValue() {
+    void run();
+    void sendValue(std::string value);
+    std::string getValue() {
         return pCharacteristic->getValue();
     }
     static BLECommand parseCommand(const std::string& command);

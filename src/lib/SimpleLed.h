@@ -5,8 +5,8 @@ class SimpleLed {
     public:
     SimpleLed();
     void load();
-    void Run();
-    void SetFrequency(int frequency);
+    void run();
+    void setFrequency(int frequency);
 
 
     private:
